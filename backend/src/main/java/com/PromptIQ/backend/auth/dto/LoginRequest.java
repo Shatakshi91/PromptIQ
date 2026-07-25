@@ -1,4 +1,8 @@
 package com.PromptIQ.backend.auth.dto;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
-public class LoginRequest {
-}
+public record LoginRequest(
+        @NotBlank @Email String email,
+        @NotBlank String password
+) {}

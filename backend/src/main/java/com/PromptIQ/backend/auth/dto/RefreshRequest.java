@@ -1,4 +1,6 @@
 package com.PromptIQ.backend.auth.dto;
+import jakarta.validation.constraints.NotBlank;
 
-public class RefreshRequest {
-}
+public record RefreshRequest(
+        @NotBlank String refreshToken
+) {}

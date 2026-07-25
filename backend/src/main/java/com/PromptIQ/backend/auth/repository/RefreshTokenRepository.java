@@ -1,4 +1,11 @@
 package com.PromptIQ.backend.auth.repository;
+import com.PromptIQ.backend.auth.entity.RefreshToken;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public class RefreshTokenRepository {
+import java.util.Optional;
+import java.util.UUID;
+
+public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
+    Optional<RefreshToken> findByTokenHash(String tokenHash);
+    void deleteByUserId(UUID userId);
 }
