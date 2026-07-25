@@ -1,27 +1,26 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import LoginPage from './features/auth/LoginPage'
+import RegisterPage from './features/auth/RegisterPage'
+import DashboardPage from './features/dashboard/DashboardPage'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
-  const [status, setStatus] = useState('checking...')
-
-  useEffect(() => {
-    fetch('/api/v1/ping')
-      .then((res) => res.json())
-      .then((data) => setStatus(data.status))
-      .catch(() => setStatus('backend unreachable'))
-  }, [])
-
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Get ready to give prompts</h1>
-        <p className="text-slate-400">
-          Backend status:{' '}
-          <span className={status === 'UP' ? 'text-green-400' : 'text-red-400'}>
-            {status}
-          </span>
-        </p>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
