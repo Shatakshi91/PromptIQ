@@ -1,4 +1,4 @@
-package com.PromptIQ.backend.user.dto;
+package com.PromptIQ.backend.common.dto;
 import org.springframework.data.domain.Page;
 
 import java.util.List;

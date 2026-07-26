@@ -1,4 +1,2 @@
 package com.PromptIQ.backend.user.dto;
-
-public class UpdateStatusRequest {
-}
+public record UpdateStatusRequest(boolean enabled) {}
