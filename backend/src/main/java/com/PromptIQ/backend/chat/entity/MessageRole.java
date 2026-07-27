@@ -1,4 +1,6 @@
 package com.PromptIQ.backend.chat.entity;
-
-public class Message {
+public enum MessageRole {
+    USER,
+    ASSISTANT,
+    SYSTEM
 }

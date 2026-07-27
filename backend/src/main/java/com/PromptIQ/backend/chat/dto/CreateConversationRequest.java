@@ -1,4 +1,6 @@
 package com.PromptIQ.backend.chat.dto;
+import jakarta.validation.constraints.Size;
 
-public class CreateConversationRequest {
-}
+public record CreateConversationRequest(
+        @Size(max = 255) String title
+) {}
