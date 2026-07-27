@@ -19,18 +19,21 @@ export default function Navbar() {
   return (
     <nav className="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-6">
-        <Link to="/" className="text-white font-bold">
-          AI Agent Platform
-        </Link>
-        <Link to="/profile" className="text-slate-400 hover:text-white text-sm">
-          Profile
-        </Link>
-        {user?.role === 'ADMIN' && (
-          <Link to="/admin/users" className="text-slate-400 hover:text-white text-sm">
-            Admin
-          </Link>
-        )}
-      </div>
+  <Link to="/chat" className="text-white font-bold">
+    AI Agent Platform
+  </Link>
+  <Link to="/chat" className="text-slate-400 hover:text-white text-sm">
+    Chat
+  </Link>
+  <Link to="/profile" className="text-slate-400 hover:text-white text-sm">
+    Profile
+  </Link>
+  {user?.role === 'ADMIN' && (
+    <Link to="/admin/users" className="text-slate-400 hover:text-white text-sm">
+      Admin
+    </Link>
+  )}
+</div>
       <div className="flex items-center gap-4">
         <span className="text-slate-400 text-sm">{user?.displayName}</span>
         <button

@@ -4,6 +4,8 @@ import RegisterPage from './features/auth/RegisterPage'
 import DashboardPage from './features/dashboard/DashboardPage'
 import ProfilePage from './features/profile/ProfilePage'
 import AdminUsersPage from './features/admin/AdminUsersPage'
+import ChatLayout from './features/chat/ChatLayout'
+import ChatThreadPage from './features/chat/ChatThreadPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import AppLayout from './layouts/AppLayout'
@@ -22,7 +24,8 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route
             path="/admin/users"
@@ -32,6 +35,11 @@ function App() {
               </AdminRoute>
             }
           />
+
+          <Route path="/chat" element={<ChatLayout />}>
+            <Route index element={<ChatThreadPage />} />
+            <Route path=":conversationId" element={<ChatThreadPage />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
