@@ -2,6 +2,7 @@ package com.PromptIQ.backend.chat.controller;
 
 import com.PromptIQ.backend.auth.security.UserPrincipal;
 import com.PromptIQ.backend.chat.dto.*;
+import com.PromptIQ.backend.chat.service.ChatOrchestrationService;
 import com.PromptIQ.backend.chat.service.ConversationService;
 import com.PromptIQ.backend.common.dto.PageResponse;
 import jakarta.validation.Valid;
@@ -20,8 +21,10 @@ import java.util.UUID;
 public class ConversationController {
 
     private final ConversationService conversationService;
+    private final ChatOrchestrationService chatOrchestrationService;
 
-    public ConversationController(ConversationService conversationService) {
+    public ConversationController(ConversationService conversationService, ChatOrchestrationService chatOrchestrationService) {
+        this.chatOrchestrationService = chatOrchestrationService;
         this.conversationService = conversationService;
     }
 
@@ -85,5 +88,15 @@ public class ConversationController {
             @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         return conversationService.listMessages(principal.getId(), id, pageable);
+    }
+    @PostMapping("/{id}/chat")
+    public ResponseEntity<MessageResponse> chat(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody SendMessageRequest request
+    ) {
+        return ResponseEntity.ok(
+                chatOrchestrationService.sendUserMessageAndGetReply(principal.getId(), id, request.content())
+        );
     }
 }
