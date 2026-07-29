@@ -1,5 +1,7 @@
 package com.PromptIQ.backend.chat.controller;
-
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import com.PromptIQ.backend.chat.entity.MessageRole;
+import org.springframework.http.MediaType;
 import com.PromptIQ.backend.auth.security.UserPrincipal;
 import com.PromptIQ.backend.chat.dto.*;
 import com.PromptIQ.backend.chat.service.ChatOrchestrationService;
@@ -98,5 +100,47 @@ public class ConversationController {
         return ResponseEntity.ok(
                 chatOrchestrationService.sendUserMessageAndGetReply(principal.getId(), id, request.content())
         );
+    }
+
+    @PostMapping(value = "/{id}/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter chatStream(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody SendMessageRequest request
+    ) {
+        SseEmitter emitter = new SseEmitter(120_000L); // 2 min timeout — generous for long replies
+        UUID userId = principal.getId();
+
+        chatOrchestrationService.streamUserMessageAndGetReply(
+                userId,
+                id,
+                request.content(),
+                finalContent -> {
+                    // Called exactly once, when the stream completes (success or handled error)
+                    try {
+                        conversationService.addMessage(
+                                userId, id, new CreateMessageRequest(MessageRole.ASSISTANT, finalContent)
+                        );
+                        emitter.send(SseEmitter.event().name("done").data(""));
+                        emitter.complete();
+                    } catch (Exception e) {
+                        emitter.completeWithError(e);
+                    }
+                }
+        ).subscribe(
+                token -> {
+                    try {
+                        emitter.send(SseEmitter.event().name("token").data(token));
+                    } catch (Exception e) {
+                        emitter.completeWithError(e);
+                    }
+                },
+                emitter::completeWithError
+        );
+
+        emitter.onTimeout(() -> emitter.completeWithError(new RuntimeException("Stream timed out")));
+        emitter.onError(e -> { /* already handled above; avoid double-completion */ });
+
+        return emitter;
     }
 }

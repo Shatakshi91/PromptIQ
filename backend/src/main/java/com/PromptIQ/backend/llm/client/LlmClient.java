@@ -1,8 +1,14 @@
 package com.PromptIQ.backend.llm.client;
+import reactor.core.publisher.Flux;
+
 import java.util.List;
+
 public interface LlmClient {
 
     LlmResponse chat(List<LlmMessage> messages);
+
+
+    Flux<String> streamChat(List<LlmMessage> messages);
 
     record LlmMessage(String role, String content) {
         public static LlmMessage user(String content) { return new LlmMessage("user", content); }
