@@ -21,4 +21,7 @@ export const chatApi = {
 
   addMessage: (conversationId, role, content) =>
     axiosInstance.post(`/conversations/${conversationId}/messages`, { role, content }),
+
+  sendChatMessage: (conversationId, content) =>
+    axiosInstance.post(`/conversations/${conversationId}/chat`, { content }),
 }
