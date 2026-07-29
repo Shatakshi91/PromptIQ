@@ -1,1 +1,190 @@
 @import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    color: #111827;
+    background-color: #f9fafb;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code, pre, kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Markdown body */
+.markdown-body {
+  line-height: 1.7;
+  font-size: 0.9375rem;
+  color: #1f2937;
+  word-break: break-word;
+}
+
+.markdown-body p {
+  margin-top: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.markdown-body p:first-child { margin-top: 0; }
+.markdown-body p:last-child { margin-bottom: 0; }
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  font-weight: 600;
+  color: #111827;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.35;
+}
+
+.markdown-body h1 { font-size: 1.35rem; }
+.markdown-body h2 { font-size: 1.15rem; }
+.markdown-body h3 { font-size: 1rem; }
+.markdown-body h4 { font-size: 0.9rem; }
+
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.4rem;
+  margin: 0.5rem 0 0.85rem;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+  padding-left: 1.4rem;
+  margin: 0.5rem 0 0.85rem;
+}
+
+.markdown-body li {
+  margin-bottom: 0.3rem;
+  line-height: 1.6;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.markdown-body blockquote {
+  border-left: 3px solid #6366f1;
+  background: #f8faff;
+  padding: 0.5rem 1rem;
+  border-radius: 0 6px 6px 0;
+  color: #374151;
+  font-style: italic;
+  margin: 0.75rem 0;
+}
+
+.markdown-body hr {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 1rem 0;
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #111827;
+}
+
+.markdown-body tr:nth-child(even) { background: #fafafa; }
+
+.markdown-body code:not(pre code) {
+  background: #f3f4f6;
+  color: #4f46e5;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.83em;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+}
+
+/* ── AI Orb ── */
+.ai-orb {
+  width: 72px;
+  height: 72px;
+  position: relative;
+  animation: orb-float 4s ease-in-out infinite;
+}
+
+.ai-orb-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%,
+    #f3f4f6,
+    #9ca3af 45%,
+    #374151 70%,
+    #000000
+  );
+  box-shadow:
+    0 0 30px rgba(0, 0, 0, 0.3),
+    0 0 60px rgba(0, 0, 0, 0.1),
+    inset 0 -8px 20px rgba(0, 0, 0, 0.25),
+    inset 6px 6px 12px rgba(255, 255, 255, 0.25);
+  animation: orb-pulse 3s ease-in-out infinite;
+}
+
+@keyframes orb-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes orb-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 30px rgba(0, 0, 0, 0.3),
+      0 0 60px rgba(0, 0, 0, 0.1),
+      inset 0 -8px 20px rgba(0, 0, 0, 0.25),
+      inset 6px 6px 12px rgba(255, 255, 255, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 45px rgba(0, 0, 0, 0.4),
+      0 0 90px rgba(0, 0, 0, 0.15),
+      inset 0 -8px 20px rgba(0, 0, 0, 0.25),
+      inset 6px 6px 12px rgba(255, 255, 255, 0.3);
+  }
+}
