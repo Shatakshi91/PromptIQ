@@ -1,10 +1,13 @@
 package com.PromptIQ.backend.chat.service;
 import com.PromptIQ.backend.chat.dto.CreateMessageRequest;
 import com.PromptIQ.backend.chat.dto.MessageResponse;
+import com.PromptIQ.backend.chat.entity.Conversation;
 import com.PromptIQ.backend.chat.entity.Message;
 import com.PromptIQ.backend.chat.entity.MessageRole;
 import com.PromptIQ.backend.chat.repository.MessageRepository;
 import com.PromptIQ.backend.llm.client.LlmClient;
+import com.PromptIQ.backend.prompt.service.PromptService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -22,21 +25,25 @@ public class ChatOrchestrationService {
     private final ConversationService conversationService;
     private final MessageRepository messageRepository;
     private final LlmClient llmClient;
+    private final PromptService promptService;
 
     public ChatOrchestrationService(
             ConversationService conversationService,
             MessageRepository messageRepository,
-            LlmClient llmClient
+            LlmClient llmClient,
+            PromptService promptService
     ) {
         this.conversationService = conversationService;
         this.messageRepository = messageRepository;
         this.llmClient = llmClient;
+        this.promptService = promptService;
     }
 
+    @Transactional(readOnly = true)
     public MessageResponse sendUserMessageAndGetReply(UUID userId, UUID conversationId, String userContent) {
         conversationService.addMessage(userId, conversationId, new CreateMessageRequest(MessageRole.USER, userContent));
 
-        List<LlmClient.LlmMessage> llmMessages = buildHistory(conversationId);
+        List<LlmClient.LlmMessage> llmMessages = buildHistory(userId, conversationId);
         LlmClient.LlmResponse llmResponse = llmClient.chat(llmMessages);
 
         return conversationService.addMessage(
@@ -44,15 +51,7 @@ public class ChatOrchestrationService {
         );
     }
 
-    /**
-     * Streams the assistant's reply token-by-token. Persists the user message up front
-     * (synchronously, before streaming starts), and persists the FULL accumulated assistant
-     * reply once streaming completes — via the onComplete callback, not inside the Flux itself,
-     * so a single DB write happens exactly once regardless of how many tokens arrived.
-     *
-     * @param onComplete called with the fully-assembled reply once the stream finishes,
-     *                    so the controller can persist it and close the SSE connection.
-     */
+    @Transactional(readOnly = true)
     public Flux<String> streamUserMessageAndGetReply(
             UUID userId,
             UUID conversationId,
@@ -61,7 +60,7 @@ public class ChatOrchestrationService {
     ) {
         conversationService.addMessage(userId, conversationId, new CreateMessageRequest(MessageRole.USER, userContent));
 
-        List<LlmClient.LlmMessage> llmMessages = buildHistory(conversationId);
+        List<LlmClient.LlmMessage> llmMessages = buildHistory(userId, conversationId);
 
         AtomicReference<StringBuilder> accumulated = new AtomicReference<>(new StringBuilder());
 
@@ -78,7 +77,10 @@ public class ChatOrchestrationService {
                 });
     }
 
-    private List<LlmClient.LlmMessage> buildHistory(UUID conversationId) {
+    private List<LlmClient.LlmMessage> buildHistory(UUID userId, UUID conversationId) {
+        Conversation conversation = conversationService.getConversationEntity(userId, conversationId);
+        String systemPromptContent = promptService.resolveSystemPromptContent(userId, conversation.getPromptTemplate());
+
         List<Message> recentMessages = messageRepository
                 .findByConversationIdOrderByCreatedAtAsc(
                         conversationId,
@@ -86,11 +88,12 @@ public class ChatOrchestrationService {
                 )
                 .getContent();
 
-        return recentMessages.stream()
-                .map(m -> new LlmClient.LlmMessage(mapRole(m.getRole()), m.getContent()))
-                .toList();
-    }
+        List<LlmClient.LlmMessage> llmMessages = new java.util.ArrayList<>();
+        llmMessages.add(LlmClient.LlmMessage.system(systemPromptContent));
+        recentMessages.forEach(m -> llmMessages.add(new LlmClient.LlmMessage(mapRole(m.getRole()), m.getContent())));
 
+        return llmMessages;
+    }
     private String mapRole(MessageRole role) {
         return switch (role) {
             case USER -> "user";

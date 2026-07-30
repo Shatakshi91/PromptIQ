@@ -8,6 +8,8 @@ import com.PromptIQ.backend.chat.repository.ConversationRepository;
 import com.PromptIQ.backend.chat.repository.MessageRepository;
 import com.PromptIQ.backend.common.dto.PageResponse;
 import com.PromptIQ.backend.common.exception.ApiException;
+import com.PromptIQ.backend.prompt.entity.PromptTemplate;
+import com.PromptIQ.backend.prompt.service.PromptService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,15 +24,19 @@ public class ConversationService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final PromptService promptService;
+
 
     public ConversationService(
             ConversationRepository conversationRepository,
             MessageRepository messageRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            PromptService promptService
     ) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
+        this.promptService = promptService;
     }
 
     @Transactional
@@ -97,13 +103,6 @@ public class ConversationService {
                 MessageResponse::from
         );
     }
-
-    /**
-     * Central ownership guard. Every conversation-scoped operation goes through this.
-     * Returns 404 (not 403) for both "doesn't exist" and "exists but isn't yours" —
-     * this deliberately avoids leaking whether a given conversation ID exists at all
-     * to a user who doesn't own it.
-     */
     private Conversation getOwnedConversationOrThrow(UUID userId, UUID conversationId) {
         Conversation conversation = conversationRepository.findByIdAndDeletedAtIsNull(conversationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
@@ -113,5 +112,23 @@ public class ConversationService {
         }
 
         return conversation;
+    }
+    @Transactional
+    public ConversationResponse assignPrompt(UUID userId, UUID conversationId, UUID promptTemplateId) {
+        Conversation conversation = getOwnedConversationOrThrow(userId, conversationId);
+
+        if (promptTemplateId == null) {
+            conversation.setPromptTemplate(null);
+        } else {
+            PromptTemplate prompt = promptService.getOwnedPromptOrThrow(userId, promptTemplateId);
+            conversation.setPromptTemplate(prompt);
+        }
+
+        return ConversationResponse.from(conversationRepository.save(conversation));
+    }
+
+    // package-private, used internally by ChatOrchestrationService
+    Conversation getConversationEntity(UUID userId, UUID conversationId) {
+        return getOwnedConversationOrThrow(userId, conversationId);
     }
 }

@@ -9,7 +9,7 @@ public record OpenRouterRequest(
     public record Message(String role, String content) {}
 
     public static OpenRouterRequest nonStreaming(String model, List<Message> messages) {
-        return new OpenRouterRequest(model, messages, null);
+        return new OpenRouterRequest(model, messages, false);
     }
 
     public static OpenRouterRequest streaming(String model, List<Message> messages) {

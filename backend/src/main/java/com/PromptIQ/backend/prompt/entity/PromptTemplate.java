@@ -1,6 +1,5 @@
-package com.PromptIQ.backend.chat.entity;
+package com.PromptIQ.backend.prompt.entity;
 import com.PromptIQ.backend.auth.entity.User;
-import com.PromptIQ.backend.prompt.entity.PromptTemplate;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -8,13 +7,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "conversations")
+@Table(name = "prompt_templates")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Conversation {
+public class PromptTemplate {
 
     @Id
     @GeneratedValue
@@ -24,13 +23,22 @@ public class Conversation {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "prompt_template_id")
-    private PromptTemplate promptTemplate;
+    @Column(nullable = false, length = 150)
+    private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String content;
+
+    @Column(length = 500)
+    private String description;
+
+    @Column(name = "is_default", nullable = false)
     @Builder.Default
-    private String title = "New Conversation";
+    private boolean isDefault = false;
+
+    @Column(name = "current_version", nullable = false)
+    @Builder.Default
+    private int currentVersion = 1;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -50,9 +58,5 @@ public class Conversation {
     @PreUpdate
     void onUpdate() {
         updatedAt = Instant.now();
-    }
-
-    public void touch() {
-        this.updatedAt = Instant.now();
     }
 }

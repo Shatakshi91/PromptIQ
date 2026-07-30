@@ -102,6 +102,15 @@ public class ConversationController {
         );
     }
 
+    @PatchMapping("/{id}/prompt")
+    public ConversationResponse assignPrompt(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id,
+            @RequestBody AssignPromptRequest request
+    ) {
+        return conversationService.assignPrompt(principal.getId(), id, request.promptTemplateId());
+    }
+
     @PostMapping(value = "/{id}/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(
             @AuthenticationPrincipal UserPrincipal principal,

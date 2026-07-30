@@ -46,6 +46,16 @@ public class OpenRouterLlmClient implements LlmClient {
                     .uri("/chat/completions")
                     .bodyValue(request)
                     .retrieve()
+                    .onStatus(status -> status.isError(), clientResponse ->
+                            clientResponse.bodyToMono(String.class)
+                                    .defaultIfEmpty("(empty error body)")
+                                    .flatMap(body -> {
+                                        System.err.println("OpenRouter error response body: " + body);
+                                        return reactor.core.publisher.Mono.error(
+                                                new RuntimeException("OpenRouter error: " + body)
+                                        );
+                                    })
+                    )
                     .bodyToMono(OpenRouterResponse.class)
                     .block(Duration.ofSeconds(properties.getRequestTimeoutSeconds()));
 
