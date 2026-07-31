@@ -26,6 +26,14 @@ export default function TopHeader() {
         <span className="font-bold text-gray-900 tracking-tight text-lg">PromptIQ</span>
       </Link>
 
+      <Link
+        to="/prompts"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/80 transition-colors"
+      >
+        <Sparkles className="w-4 h-4" />
+        <span>Manage Prompts</span>
+      </Link>
+
       <div className="flex items-center gap-3 relative group">
         <div className="w-9 h-9 rounded-full bg-black text-white font-semibold text-sm flex items-center justify-center cursor-pointer shadow-sm hover:ring-2 hover:ring-gray-300 transition-all">
           {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
@@ -38,7 +46,7 @@ export default function TopHeader() {
               <p className="text-sm font-semibold text-gray-900 truncate">{user?.displayName || 'User'}</p>
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
-            
+
 
             <Link to="/profile" className="flex items-center gap-2.5 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
               <User className="w-4 h-4 text-gray-400" />
@@ -48,7 +56,7 @@ export default function TopHeader() {
               <Settings className="w-4 h-4 text-gray-400" />
               Settings
             </Link>
-            
+
             {user?.role === 'ADMIN' && (
               <Link to="/admin/users" className="flex items-center gap-2.5 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
                 <ShieldCheck className="w-4 h-4 text-gray-400" />

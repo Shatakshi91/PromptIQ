@@ -24,4 +24,7 @@ export const chatApi = {
 
   sendChatMessage: (conversationId, content) =>
     axiosInstance.post(`/conversations/${conversationId}/chat`, { content }),
+
+    assignPrompt: (conversationId, promptTemplateId) =>
+  axiosInstance.patch(`/conversations/${conversationId}/prompt`, { promptTemplateId })
 }

@@ -6,6 +6,7 @@ import { useChatStore } from '../../store/chatStore'
 import { useAuthStore } from '../../store/authStore'
 import MessageBubble from './MessageBubble'
 import TypingIndicator from './TypingIndicator'
+import PromptSelector from './PromptSelector'
 import {
   Sparkles,
   ArrowUp,
@@ -62,6 +63,7 @@ export default function ChatThreadPage() {
   const [streamingText, setStreamingText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState('')
+  const [activePromptId, setActivePromptId] = useState(null)
 
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -69,8 +71,8 @@ export default function ChatThreadPage() {
   const firstName = user?.displayName
     ? user.displayName.split(' ')[0]
     : user?.email
-    ? user.email.split('@')[0]
-    : 'there'
+      ? user.email.split('@')[0]
+      : 'there'
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -81,11 +83,13 @@ export default function ChatThreadPage() {
   }
 
   const activeConversation = conversations?.find((c) => c.id === conversationId)
-
   useEffect(() => {
     if (!conversationId) return
+
     setActiveConversationId(conversationId)
     fetchMessages()
+    fetchConversationMeta()
+
     setStreamingText('')
     setIsStreaming(false)
   }, [conversationId])
@@ -111,6 +115,14 @@ export default function ChatThreadPage() {
       setError('Failed to load messages')
     } finally {
       setMessagesLoading(false)
+    }
+  }
+  const fetchConversationMeta = async () => {
+    try {
+      const { data } = await chatApi.getConversation(conversationId)
+      setActivePromptId(data.promptTemplateId || null)
+    } catch {
+      // ignore
     }
   }
 
@@ -208,11 +220,10 @@ export default function ChatThreadPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={toggleSidebar}
-            className={`p-2 rounded-xl transition-all cursor-pointer lg:hidden ${
-              isSidebarOpen
+            className={`p-2 rounded-xl transition-all cursor-pointer lg:hidden ${isSidebarOpen
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100/80'
-            }`}
+              }`}
             title="Toggle history"
           >
             <PanelLeft className="w-4 h-4" />
@@ -229,6 +240,15 @@ export default function ChatThreadPage() {
           )}
 
         </div>
+
+        {conversationId && (
+          <PromptSelector
+            conversationId={conversationId}
+            activePromptId={activePromptId}
+            onChanged={setActivePromptId}
+          />
+        )}
+        
       </header>
 
       {/* Body */}
