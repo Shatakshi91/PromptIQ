@@ -15,13 +15,10 @@ export default function MessageBubble({ role, content }) {
 
   if (isUser) {
     return (
-      <div className="flex gap-3 my-3 justify-start">
-        <div className="w-7 h-7 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 mt-0.5">
-          <User className="w-3.5 h-3.5 text-gray-500" />
-        </div>
+      <div className="flex gap-3 my-3 justify-end flex-row-reverse">
         <div className="max-w-[88%] sm:max-w-[80%]">
-          <div className="text-sm font-medium text-gray-800 mb-1 px-1">You</div>
-          <div className="bg-gray-50/80 border border-gray-200/60 rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm text-gray-900 leading-relaxed whitespace-pre-wrap break-words">
+          <div className="text-sm font-medium text-gray-800 mb-1 px-1 text-right">You</div>
+          <div className="bg-gray-50/80 border border-gray-200/60 rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm text-gray-900 leading-relaxed whitespace-pre-wrap break-words">
             {content}
           </div>
         </div>
