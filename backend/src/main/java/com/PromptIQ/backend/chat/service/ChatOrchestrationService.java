@@ -39,7 +39,7 @@ public class ChatOrchestrationService {
         this.promptService = promptService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public MessageResponse sendUserMessageAndGetReply(UUID userId, UUID conversationId, String userContent) {
         conversationService.addMessage(userId, conversationId, new CreateMessageRequest(MessageRole.USER, userContent));
 
@@ -51,7 +51,7 @@ public class ChatOrchestrationService {
         );
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Flux<String> streamUserMessageAndGetReply(
             UUID userId,
             UUID conversationId,
