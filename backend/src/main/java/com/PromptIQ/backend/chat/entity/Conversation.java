@@ -28,6 +28,12 @@ public class Conversation {
     @JoinColumn(name = "prompt_template_id")
     private PromptTemplate promptTemplate;
 
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
+    @Column(name = "summarized_up_to_message_id")
+    private UUID summarizedUpToMessageId;
+
     @Column(nullable = false)
     @Builder.Default
     private String title = "New Conversation";
