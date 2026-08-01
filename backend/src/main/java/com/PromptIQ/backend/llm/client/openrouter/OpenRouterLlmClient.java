@@ -1,4 +1,5 @@
 package com.PromptIQ.backend.llm.client.openrouter;
+
 import com.PromptIQ.backend.llm.client.LlmClient;
 import com.PromptIQ.backend.llm.config.LlmProperties;
 import com.PromptIQ.backend.common.exception.ApiException;
@@ -36,9 +37,19 @@ public class OpenRouterLlmClient implements LlmClient {
 
     @Override
     public LlmResponse chat(List<LlmMessage> messages) {
+        return chat(messages, List.of());
+    }
+
+    @Override
+    public LlmResponse chat(List<LlmMessage> messages, List<ToolSpec> tools) {
+        List<OpenRouterRequest.ToolDefinition> toolDefs = tools.stream()
+                .map(t -> OpenRouterRequest.ToolDefinition.function(t.name(), t.description(), t.parametersJsonSchema()))
+                .toList();
+
         OpenRouterRequest request = OpenRouterRequest.nonStreaming(
                 properties.getOpenrouter().getModel(),
-                messages.stream().map(m -> new OpenRouterRequest.Message(m.role(), m.content())).toList()
+                messages.stream().map(this::toOpenRouterMessage).toList(),
+                toolDefs
         );
 
         try {
@@ -63,11 +74,16 @@ public class OpenRouterLlmClient implements LlmClient {
                 throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM provider returned an empty response");
             }
 
-            String content = response.choices().get(0).message().content();
+            OpenRouterResponse.Message message = response.choices().get(0).message();
             int promptTokens = response.usage() != null ? response.usage().prompt_tokens() : 0;
             int completionTokens = response.usage() != null ? response.usage().completion_tokens() : 0;
 
-            return new LlmResponse(content, response.model(), promptTokens, completionTokens);
+            List<ToolCallRequest> toolCallRequests = message.tool_calls() == null ? List.of()
+                    : message.tool_calls().stream()
+                    .map(tc -> new ToolCallRequest(tc.id(), tc.function().name(), tc.function().arguments()))
+                    .toList();
+
+            return new LlmResponse(message.content(), response.model(), promptTokens, completionTokens, toolCallRequests);
 
         } catch (ApiException e) {
             throw e;
@@ -80,7 +96,7 @@ public class OpenRouterLlmClient implements LlmClient {
     public Flux<String> streamChat(List<LlmMessage> messages) {
         OpenRouterRequest request = OpenRouterRequest.streaming(
                 properties.getOpenrouter().getModel(),
-                messages.stream().map(m -> new OpenRouterRequest.Message(m.role(), m.content())).toList()
+                messages.stream().map(this::toOpenRouterMessage).toList()
         );
 
         return webClient.post()
@@ -104,5 +120,19 @@ public class OpenRouterLlmClient implements LlmClient {
             // A single malformed chunk shouldn't kill the whole stream — skip it and continue.
             return "";
         }
+    }
+
+    private OpenRouterRequest.Message toOpenRouterMessage(LlmMessage m) {
+        if (m.toolCallId() != null) {
+            return new OpenRouterRequest.Message("tool", m.content(), m.toolCallId(), null);
+        }
+        if (m.toolCalls() != null && !m.toolCalls().isEmpty()) {
+            List<OpenRouterRequest.ToolCall> calls = m.toolCalls().stream()
+                    .map(tc -> new OpenRouterRequest.ToolCall(tc.id(), "function",
+                            new OpenRouterRequest.FunctionCall(tc.toolName(), tc.argumentsJson())))
+                    .toList();
+            return new OpenRouterRequest.Message("assistant", null, null, calls);
+        }
+        return OpenRouterRequest.Message.of(m.role(), m.content());
     }
 }

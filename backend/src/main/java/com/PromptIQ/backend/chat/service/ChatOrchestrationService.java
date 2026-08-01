@@ -1,21 +1,18 @@
 package com.PromptIQ.backend.chat.service;
+
 import com.PromptIQ.backend.chat.dto.CreateMessageRequest;
 import com.PromptIQ.backend.chat.dto.MessageResponse;
 import com.PromptIQ.backend.chat.entity.Conversation;
-import com.PromptIQ.backend.chat.entity.Message;
 import com.PromptIQ.backend.chat.entity.MessageRole;
-import com.PromptIQ.backend.chat.repository.MessageRepository;
 import com.PromptIQ.backend.document.service.DocumentRetrievalService;
 import com.PromptIQ.backend.embedding.service.MemoryExtractionService;
 import com.PromptIQ.backend.embedding.service.MemoryService;
 import com.PromptIQ.backend.llm.client.LlmClient;
 import com.PromptIQ.backend.prompt.service.PromptService;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import com.PromptIQ.backend.tool.ToolExecutionService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
-
 
 import java.util.List;
 import java.util.UUID;
@@ -24,36 +21,35 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class ChatOrchestrationService {
 
-    private static final int MAX_HISTORY_MESSAGES = 20;
+    private static final int MAX_TOOL_ITERATIONS = 3;
 
     private final ConversationService conversationService;
-    private final MessageRepository messageRepository;
     private final LlmClient llmClient;
     private final PromptService promptService;
     private final ConversationSummaryService summaryService;
     private final MemoryService memoryService;
     private final MemoryExtractionService memoryExtractionService;
     private final DocumentRetrievalService documentRetrievalService;
+    private final ToolExecutionService toolExecutionService;
 
     public ChatOrchestrationService(
             ConversationService conversationService,
-            MessageRepository messageRepository,
             LlmClient llmClient,
             PromptService promptService,
             ConversationSummaryService summaryService,
             MemoryService memoryService,
             MemoryExtractionService memoryExtractionService,
-            DocumentRetrievalService documentRetrievalService
+            DocumentRetrievalService documentRetrievalService,
+            ToolExecutionService toolExecutionService
     ) {
         this.conversationService = conversationService;
-        this.messageRepository = messageRepository;
         this.llmClient = llmClient;
         this.promptService = promptService;
         this.summaryService = summaryService;
         this.memoryService = memoryService;
         this.memoryExtractionService = memoryExtractionService;
         this.documentRetrievalService = documentRetrievalService;
-
+        this.toolExecutionService = toolExecutionService;
     }
 
     @Transactional
@@ -61,7 +57,27 @@ public class ChatOrchestrationService {
         conversationService.addMessage(userId, conversationId, new CreateMessageRequest(MessageRole.USER, userContent));
 
         List<LlmClient.LlmMessage> llmMessages = buildHistory(userId, conversationId, userContent);
-        LlmClient.LlmResponse llmResponse = llmClient.chat(llmMessages);
+        List<LlmClient.ToolSpec> tools = toolExecutionService.availableToolSpecs();
+
+        LlmClient.LlmResponse llmResponse = llmClient.chat(llmMessages, tools);
+
+        int iterations = 0;
+        while (llmResponse.hasToolCalls() && iterations < MAX_TOOL_ITERATIONS) {
+            llmMessages.add(LlmClient.LlmMessage.assistantWithToolCalls(llmResponse.toolCalls()));
+
+            for (LlmClient.ToolCallRequest toolCall : llmResponse.toolCalls()) {
+                String result = toolExecutionService.execute(toolCall);
+                llmMessages.add(LlmClient.LlmMessage.toolResult(toolCall.id(), result));
+
+                conversationService.addMessage(userId, conversationId, new CreateMessageRequest(
+                        MessageRole.TOOL,
+                        "[" + toolCall.toolName() + "(" + toolCall.argumentsJson() + ") \u2192 " + result + "]"
+                ));
+            }
+
+            llmResponse = llmClient.chat(llmMessages, tools);
+            iterations++;
+        }
 
         MessageResponse assistantMessage = conversationService.addMessage(
                 userId, conversationId, new CreateMessageRequest(MessageRole.ASSISTANT, llmResponse.content())
@@ -82,7 +98,7 @@ public class ChatOrchestrationService {
     ) {
         conversationService.addMessage(userId, conversationId, new CreateMessageRequest(MessageRole.USER, userContent));
 
-        List<LlmClient.LlmMessage> llmMessages = buildHistory(userId, conversationId,userContent);
+        List<LlmClient.LlmMessage> llmMessages = buildHistory(userId, conversationId, userContent);
 
         AtomicReference<StringBuilder> accumulated = new AtomicReference<>(new StringBuilder());
 
@@ -90,8 +106,6 @@ public class ChatOrchestrationService {
                 .doOnNext(token -> accumulated.get().append(token))
                 .doOnComplete(() -> onComplete.accept(accumulated.get().toString()))
                 .doOnError(e -> {
-                    // Persist whatever partial content we got, even on failure mid-stream,
-                    // so the user doesn't lose a partially-generated answer entirely.
                     String partial = accumulated.get().toString();
                     if (!partial.isBlank()) {
                         onComplete.accept(partial + "\n\n[Response was interrupted]");
@@ -103,15 +117,12 @@ public class ChatOrchestrationService {
         Conversation conversation = conversationService.getConversationEntity(userId, conversationId);
         String systemPromptContent = promptService.resolveSystemPromptContent(userId, conversation.getPromptTemplate());
 
-        // Long-term memory: retrieve relevant facts about this user
-        // Long-term memory: retrieve relevant facts about this user
         List<String> relevantMemories = memoryService.retrieveRelevant(userId, latestUserMessage);
         if (!relevantMemories.isEmpty()) {
             systemPromptContent += "\n\nRelevant things you know about this user:\n"
                     + String.join("\n", relevantMemories.stream().map(m -> "- " + m).toList());
         }
 
-// RAG: retrieve relevant chunks from the user's uploaded documents
         List<String> relevantChunks = documentRetrievalService.retrieveRelevantChunks(userId, latestUserMessage);
         if (!relevantChunks.isEmpty()) {
             systemPromptContent += "\n\nRelevant excerpts from the user's uploaded documents:\n"
@@ -119,7 +130,6 @@ public class ChatOrchestrationService {
             systemPromptContent += "\n\nWhen your answer relies on these excerpts, mention that you're referencing the user's uploaded document.";
         }
 
-        // Short-term memory: rolling summary + recent window, instead of a hard message cap
         ConversationSummaryService.ConversationContext context = summaryService.buildContext(conversation);
         if (context.summary() != null) {
             systemPromptContent += "\n\nSummary of earlier conversation:\n" + context.summary();
@@ -127,16 +137,23 @@ public class ChatOrchestrationService {
 
         List<LlmClient.LlmMessage> llmMessages = new java.util.ArrayList<>();
         llmMessages.add(LlmClient.LlmMessage.system(systemPromptContent));
-        context.recentMessages().forEach(m ->
-                llmMessages.add(new LlmClient.LlmMessage(mapRole(m.getRole()), m.getContent())));
+        context.recentMessages().forEach(m -> {
+            if (m.getRole() == MessageRole.TOOL) {
+                llmMessages.add(new LlmClient.LlmMessage("user", "[Tool result from earlier: " + m.getContent() + "]", null, null));
+            } else {
+                llmMessages.add(new LlmClient.LlmMessage(mapRole(m.getRole()), m.getContent(), null, null));
+            }
+        });
 
         return llmMessages;
     }
+
     private String mapRole(MessageRole role) {
         return switch (role) {
             case USER -> "user";
             case ASSISTANT -> "assistant";
             case SYSTEM -> "system";
+            case TOOL -> "tool";
         };
     }
 }
