@@ -5,6 +5,7 @@ import com.PromptIQ.backend.chat.entity.Conversation;
 import com.PromptIQ.backend.chat.entity.Message;
 import com.PromptIQ.backend.chat.entity.MessageRole;
 import com.PromptIQ.backend.chat.repository.MessageRepository;
+import com.PromptIQ.backend.document.service.DocumentRetrievalService;
 import com.PromptIQ.backend.embedding.service.MemoryExtractionService;
 import com.PromptIQ.backend.embedding.service.MemoryService;
 import com.PromptIQ.backend.llm.client.LlmClient;
@@ -32,6 +33,7 @@ public class ChatOrchestrationService {
     private final ConversationSummaryService summaryService;
     private final MemoryService memoryService;
     private final MemoryExtractionService memoryExtractionService;
+    private final DocumentRetrievalService documentRetrievalService;
 
     public ChatOrchestrationService(
             ConversationService conversationService,
@@ -40,7 +42,8 @@ public class ChatOrchestrationService {
             PromptService promptService,
             ConversationSummaryService summaryService,
             MemoryService memoryService,
-            MemoryExtractionService memoryExtractionService
+            MemoryExtractionService memoryExtractionService,
+            DocumentRetrievalService documentRetrievalService
     ) {
         this.conversationService = conversationService;
         this.messageRepository = messageRepository;
@@ -49,6 +52,7 @@ public class ChatOrchestrationService {
         this.summaryService = summaryService;
         this.memoryService = memoryService;
         this.memoryExtractionService = memoryExtractionService;
+        this.documentRetrievalService = documentRetrievalService;
 
     }
 
@@ -100,10 +104,19 @@ public class ChatOrchestrationService {
         String systemPromptContent = promptService.resolveSystemPromptContent(userId, conversation.getPromptTemplate());
 
         // Long-term memory: retrieve relevant facts about this user
+        // Long-term memory: retrieve relevant facts about this user
         List<String> relevantMemories = memoryService.retrieveRelevant(userId, latestUserMessage);
         if (!relevantMemories.isEmpty()) {
             systemPromptContent += "\n\nRelevant things you know about this user:\n"
                     + String.join("\n", relevantMemories.stream().map(m -> "- " + m).toList());
+        }
+
+// RAG: retrieve relevant chunks from the user's uploaded documents
+        List<String> relevantChunks = documentRetrievalService.retrieveRelevantChunks(userId, latestUserMessage);
+        if (!relevantChunks.isEmpty()) {
+            systemPromptContent += "\n\nRelevant excerpts from the user's uploaded documents:\n"
+                    + String.join("\n---\n", relevantChunks);
+            systemPromptContent += "\n\nWhen your answer relies on these excerpts, mention that you're referencing the user's uploaded document.";
         }
 
         // Short-term memory: rolling summary + recent window, instead of a hard message cap
