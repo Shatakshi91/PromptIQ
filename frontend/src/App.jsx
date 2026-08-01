@@ -10,7 +10,7 @@ import ChatThreadPage from './features/chat/ChatThreadPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import AppLayout from './layouts/AppLayout'
-
+import MemoriesPage from './features/memories/MemoriesPage'
 function App() {
   return (
     <BrowserRouter>
@@ -29,6 +29,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/prompts" element={<PromptsPage />} />
+          <Route path="/memories" element={<MemoriesPage />} />
           <Route
             path="/admin/users"
             element={

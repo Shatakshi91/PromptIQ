@@ -33,6 +33,9 @@ export default function TopHeader() {
         <Sparkles className="w-4 h-4" />
         <span>Manage Prompts</span>
       </Link>
+      <Link to="/memories" className="text-slate-400 hover:text-white text-sm">
+       Memories
+      </Link>
 
       <div className="flex items-center gap-3 relative group">
         <div className="w-9 h-9 rounded-full bg-black text-white font-semibold text-sm flex items-center justify-center cursor-pointer shadow-sm hover:ring-2 hover:ring-gray-300 transition-all">
