@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import AppLayout from './layouts/AppLayout'
 import MemoriesPage from './features/memories/MemoriesPage'
+import DocumentsPage from './features/documents/DocumentsPage'
 function App() {
   return (
     <BrowserRouter>
@@ -30,6 +31,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/prompts" element={<PromptsPage />} />
           <Route path="/memories" element={<MemoriesPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
           <Route
             path="/admin/users"
             element={

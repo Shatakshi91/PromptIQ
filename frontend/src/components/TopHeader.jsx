@@ -25,6 +25,9 @@ export default function TopHeader() {
         </div>
         <span className="font-bold text-gray-900 tracking-tight text-lg">PromptIQ</span>
       </Link>
+      <Link to="/documents" className="text-slate-400 hover:text-white text-sm">
+  Documents
+</Link>
 
       <Link
         to="/prompts"
