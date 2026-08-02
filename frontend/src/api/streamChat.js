@@ -16,7 +16,8 @@ import { useAuthStore } from '../store/authStore'
  */
 export async function streamChatMessage(conversationId, content, { onToken, onDone, onError }) {
   const doStream = async (token) => {
-    const response = await fetch(`/api/v1/conversations/${conversationId}/chat/stream`, {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+    const response = await fetch(`${baseUrl}/conversations/${conversationId}/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
