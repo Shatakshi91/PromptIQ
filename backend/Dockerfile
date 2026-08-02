@@ -6,6 +6,7 @@ WORKDIR /app
 # are skipped on rebuilds unless pom.xml actually changed, not on every code edit
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
+RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline -B
 
 COPY src ./src
